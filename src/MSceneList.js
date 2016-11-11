@@ -90,7 +90,7 @@ export default class MSceneList extends Component {
                      //row高度
                      sectionHeaderY += this._heightOfRow(brand, sectionId, brandIndex);
                      //separator高度
-                     sectionHeaderY += (brandIndex < brands[sectionId].length - 1 ? 1 : 0);
+                     sectionHeaderY += (brandIndex < brands[sectionId].length - 1 ? 0.5 : 0);
                   });
                });
             });
@@ -224,8 +224,9 @@ export default class MSceneList extends Component {
       if (this.state.frameOfListView === undefined || sectionIds === undefined) {
          return <View />
       } else {
+         var paddingVertical = 3;
          var heightOne = this.state.heightOne;
-         var heightAll = heightOne * sectionIds.length;
+         var heightAll = heightOne * sectionIds.length + paddingVertical * 2;
          var heightLimit = this.state.frameOfListView.height;
 
          var innerHTML = sectionIds.map((val, index) => {
@@ -245,7 +246,7 @@ export default class MSceneList extends Component {
                   right: 12,
                   width: 15,
                   height: heightAll,
-                  paddingVertical: 3,
+                  paddingVertical: paddingVertical,
                   flexDirection: 'column',
                   justifyContent: 'flex-start',
                   alignItems: 'center',
