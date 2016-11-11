@@ -242,7 +242,7 @@ export default class MSceneList extends Component {
          return (
             <View
                style={{
-                  top: frame.py + (frame.height - heightAll) * 0.5,
+                  top: frame.oy + (frame.height - heightAll) * 0.5,
                   right: 12,
                   width: 15,
                   height: heightAll,
