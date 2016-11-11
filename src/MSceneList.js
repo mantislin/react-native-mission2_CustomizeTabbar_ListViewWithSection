@@ -27,6 +27,7 @@ export default class MSceneList extends Component {
          dataSource: ds.cloneWithRowsAndSections({}, []), //dataSource for ListView
          sectionIds: [], //the list of section index
          brands: {}, //brand tree data parsed from json data
+         imageDefault: 'http://kepkezelo.com/images/59fqze7llmos6freeupr.png',
       };
    }
 
@@ -66,16 +67,29 @@ export default class MSceneList extends Component {
                      name: name,
                      icon: icon,
                   };
-                  var brandsInit = brands[initial]; //首字母同为${initial}的品牌列表
+                  var brandsInit = brands[initial]; //首字母同为${initial}的品牌的列表
                   brandsInit = (brandsInit === undefined ? [] : brandsInit);
                   brandsInit.push(brand);
                   brands[initial] = brandsInit;
                });
                sectionIds = Object.keys(brands).map(val => val);
-               this.setState({
+
+               this.setState({ //Trigger listview layout
                   brands: brands,
                   sectionIds: sectionIds,
                   dataSource: this.state.ds.cloneWithRowsAndSections(brands, sectionIds),
+               });
+
+               //Prepare section index.
+               if (this.state.sectionHeaderYs === undefined || this.state.sectionHeaderYs === null)
+                  this.state.sectionHeaderYs = {};
+               var sectionHeaderY = 0;
+               sectionIds.forEach((sectionId, sectionIndex) => { // here
+                  this.state.sectionHeaderYs[sectionId] = sectionHeaderY;
+                  brands[sectionId].forEach((brand, brandIndex) => {
+                     sectionHeaderY += (brandIndex == 0 ? this._heightOfSectionHeader(brand, sectionId) : 0);
+                     sectionHeaderY += this._heightOfRow(brand, sectionId, brandIndex);
+                  });
                });
             });
       } catch(error) {
@@ -94,15 +108,9 @@ export default class MSceneList extends Component {
          //onMoveShouldSetPanResponderCapture:(event, gestureState) => true,
 
          onPanResponderMove:(event, gestureState) => {
-            //console.log(`onPanResponderMove:`); // testing
-            //console.log(`event = ${event}`); // testing
-            //console.log(`gestureState = ${Object.keys(gestureState)}`); // testing
             //estureState = stateID,moveX,moveY,x0,y0,dx,dy,vx,vy,numberActiveTouches,_accountsForMovesUpTo // testing
-            //console.log(`x0,y0       = {${gestureState.x0},${gestureState.y0}}`); // testing
-            //console.log(`moveX,moveY = {${gestureState.moveX},${gestureState.moveY}}`); // testing
-            //console.log(`this.state.frameOfSectionNavigator = ${this.state.frameOfSectionNavigator}`); // testing
             if (this.state.frameOfSectionNavigator === undefined) {
-               this._measureElement(this.refs.sectionNavigator);
+               this._measureElement(this.refs.sectionIndex);
                return;
             }
             if (this.state.sectionIds === undefined) return;
@@ -115,24 +123,10 @@ export default class MSceneList extends Component {
                if (index == 0 && gestureState.moveY > endY) return;
                if (index == this.state.sectionIds.length - 1 && gestureState.moveY < startY) return;
 
-               //console.log(`{v, i} = {${val}, ${index}}`); // testing
-               //console.log(`ref = ${ref}`); // testing
-               //console.log(`element = ${Object.keys(element)}`); // testing
+               var y = this.state.sectionHeaderYs[val];
+               if (y === undefined) return;
 
-               //var element = this.ReactNativeComponentTree.getInstanceFromNode(event.target); // delete
-               //this._measureElement(element); // here
-               if (this.state.sectionHeaders === undefined) return;
-               var tag = `sectionId.${val}`;
-               var nodeId = this.state.sectionHeaders[tag];
-               var instance = this.ReactNativeComponentTree.getInstanceFromNode(nodeId);
-               if (instance === null || instance === undefined || instance._currentElement === undefined) return;
-               console.log('=================================================='); // testing
-               console.log(`tag = ${tag}`); // testing
-               console.log(`nodeId = ${nodeId}`); // testing
-               console.log(`instance.keys = ${Object.keys(instance)}`); // testing
-               console.log(`tag = ${instance._currentElement.props.tag}`); // testing
-
-               this._measureElement(instance);
+               this.refs.listView.scrollTo({ x: 0, y: y, animated: false, });
             });
          },
          //onPanResponderTerminationRequest:(event, gestureState) => true,
@@ -140,19 +134,10 @@ export default class MSceneList extends Component {
       });
    }
 
-   componentDidMount() {
-      //setTimeout(() => { // delete
-      //   this._measureElement(this.refs.container); // delete
-      //}, 0); // delete
-   }
+   _measureElement(element, tag) {
 
-   _measureElement(element) {
-      //console.log(`element = ${element}`); // testing
-      console.log(`==================================================`); // testing
-
-      if (element === this.refs.listView && element.measure != undefined) {
+      if ((tag === 'listView') && element.measure != undefined) {
          element.measure((ox, oy, width, height, px, py) => {
-            console.log(`this.refs.listView.measure = ${element.measure}`); // testing
             var frame = {
                ox: ox,
                oy: oy,
@@ -162,13 +147,6 @@ export default class MSceneList extends Component {
                py: py,
             };
             if (frame !== this.state.frameOfListView) {
-               //console.log(`ox = ${ox}`); // testing
-               //console.log(`oy = ${oy}`); // testing
-               //console.log(`width = ${width}`); // testing
-               //console.log(`height = ${height}`); // testing
-               //console.log(`px = ${px}`); // testing
-               //console.log(`py = ${py}`); // testing
-               //console.log(`{ox,oy,width,height,px,py} = {${ox},${oy},${width},${height},${px},${py}}`); // testing
                this.setState({
                   frameOfListView: frame,
                });
@@ -177,16 +155,8 @@ export default class MSceneList extends Component {
          return;
       }
 
-      if (element === this.refs.sectionNavigator && element.measure != undefined) {
+      if (element === this.refs.sectionIndex && element.measure != undefined) {
          element.measure((ox, oy, width, height, px, py) => {
-            console.log(`this.refs.sectionNavigator.measure = ${element.measure}`); // testing
-            //console.log(`ox = ${ox}`); // testing
-            //console.log(`oy = ${oy}`); // testing
-            //console.log(`width = ${width}`); // testing
-            //console.log(`height = ${height}`); // testing
-            //console.log(`px = ${px}`); // testing
-            //console.log(`py = ${py}`); // testing
-            //console.log(`{ox,oy,width,height,px,py} = {${ox},${oy},${width},${height},${px},${py}}`); // testing
             this.state.frameOfSectionNavigator = {
                ox: ox,
                oy: oy,
@@ -197,18 +167,6 @@ export default class MSceneList extends Component {
             };
          });
          return;
-      }
-
-      console.log(`element.measure = ${element.measure}`); // testing
-      console.log(`element.keys = ${Object.keys(element)}`); // testing
-      console.log(`element.type = ${element.type}`); // testing
-      if (element.measure != undefined) {
-         console.log(`element._currentElement.props.tag = ${element._currentElement.props.tag}`); // testing
-         element.measure((ox, oy, width, height, px, py) => {
-            //section jump // here
-            console.log(`{ox,oy,width,height,px,py} = {${ox},${oy},${width},${height},${px},${py}}`); // testing
-            this.refs.listView.scrollTo({ x: 0, y: oy, animated: false, });
-         });
       }
    }
 
@@ -221,23 +179,14 @@ export default class MSceneList extends Component {
                showsVerticalScrollIndicator={false}
                dataSource={this.state.dataSource}
                renderSectionHeader={(data, sectionId) => this._renderSectionHeader(data, sectionId)}
-               renderRow={rowData => this._renderRow(rowData)}
+               renderRow={this._renderRow.bind(this)}
                renderSeparator={this._renderSeparator}
                renderScrollComponent={props => <RecyclerViewBackedScrollView {...props} />}
+               tag="listView"
                onLayout={(event) => {
-                  //console.log(`layout.keys = ${Object.keys(event.nativeEvent.layout)}`); // testing
-                  //console.log(`x = ${event.nativeEvent.layout.x}`); // testing
-                  //console.log(`y = ${event.nativeEvent.layout.y}`); // testing
-                  //console.log(`width = ${event.nativeEvent.layout.width}`); // testing
-                  //console.log(`height = ${event.nativeEvent.layout.height}`); // testing
-                  this.setState({
-                     frameOfListView: {
-                        ox: event.nativeEvent.layout.x,
-                        oy: event.nativeEvent.layout.y,
-                        width: event.nativeEvent.layout.width,
-                        height: event.nativeEvent.layout.height,
-                     },
-                  });
+                  var instance = this.ReactNativeComponentTree.getInstanceFromNode(event.target);
+                  if (instance === null) return;
+                  this._measureElement(instance, instance._currentElement.props.tag);
                }}
             />
             {this._renderSectionNavigator(this.refs["listView"])}
@@ -253,14 +202,8 @@ export default class MSceneList extends Component {
          var heightOne = this.state.heightOne;
          var heightAll = heightOne * sectionIds.length;
          var heightLimit = this.state.frameOfListView.height;
-         //console.log(`sectionIds.length = ${sectionIds.length}`); // testing
-         //console.log(`heightOne = ${heightOne}`); // testing
-         //console.log(`heightAll = ${heightAll}`); // testing
-         //console.log(`heightLimit = ${heightLimit}`); // testing
 
          var innerHTML = sectionIds.map((val, index) => {
-            //console.log(`val = ${val}`); // testing
-            //console.log(`index = ${index}`); // testing
             return (
                <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#9FF', }}
                   key={val}
@@ -284,14 +227,9 @@ export default class MSceneList extends Component {
                   backgroundColor: 'whitesmoke', // testing
                   position: 'absolute',
                }}
-               ref="sectionNavigator"
+               ref="sectionIndex"
                {...this._panResponder.panHandlers}
                //onLayout=((event) => {
-               //   console.log(`layout.keys = ${Object.keys(event.nativeEvent.layout)}`); // testing
-               //   console.log(`x = ${event.nativeEvent.layout.x}`); // testing
-               //   console.log(`y = ${event.nativeEvent.layout.y}`); // testing
-               //   console.log(`width = ${event.nativeEvent.layout.width}`); // testing
-               //   console.log(`height = ${event.nativeEvent.layout.height}`); // testing
                //   this.setState.frameOfSectionNavigator = {
                //      ox: event.nativeEvent.layout.x,
                //      oy: event.nativeEvent.layout.y,
@@ -306,15 +244,16 @@ export default class MSceneList extends Component {
       }
    }
 
+   _heightOfSectionHeader(rowDatas, sectionId) {
+      return 26;
+   }
+
    _renderSectionHeader(rowDatas, sectionId) {
-      //console.log(`sectionId = ${sectionId}`); // testing
-      //console.log(`rowDatas = ${rowDatas}`); // testing
       var ref = `sectionId.${sectionId}`;
-      //console.log(`ref = ${ref}`); // testing
       return (
          <View
             style={{
-               height: 26,
+               height: this._heightOfSectionHeader(rowDatas, sectionId),
                backgroundColor: '#AA3',
                flexDirection: 'row',
                justifyContent: 'flex-start',
@@ -322,37 +261,38 @@ export default class MSceneList extends Component {
                paddingLeft: 12,
             }}
             tag={ref}
-            onLayout={event => { // here
-               console.log(`==================================================`); // testing
-               //console.log(`event.keys = Object.keys(event)`); // testing
-               //console.log(`event.nativeEvent.keys = Object.keys(event.nativeEvent)`); // testing
-               //console.log(`element._currentElement.keys = ${Object.keys(element._currentElement)}`); // testing
-               //console.log(`element._currentElement.ref = ${element._currentElement.ref}`); // testing
-               //console.log(`element._currentElement.key = ${element._currentElement.key}`); // testing
-               //console.log(`element._currentElement.props.ref = ${element._currentElement.props.ref}`); // testing
-               //console.log(`element._currentElement.props.key = ${element._currentElement.props.key}`); // testing
-               //console.log(`element._currentElement.props.tag = ${element._currentElement.props.tag}`); // testing
-               //var element = this.ReactNativeComponentTree.getInstanceFromNode(event.target);
-               //this._measureElement(element._currentElement);
-               var element = this.ReactNativeComponentTree.getInstanceFromNode(event.target);
-               if (element._currentElement.props.tag === undefined) return;
-
-               console.log(`element._currentElement.props.tag = ${element._currentElement.props.tag}`); // testing
-               this.state.sectionHeaders[element._currentElement.props.tag] = event.target;
-               console.log(`this.state.sectionHeaders.keys = ${Object.keys(this.state.sectionHeaders)}`);
-            }}
          >
             <Text style={{ fontWeight: 'bold', }}>{sectionId}</Text>
          </View>
       )
    }
 
-   _renderRow(rowData) {
-      //console.log(`rowData["name"] = ${rowData["name"]}`); // testing
+   _heightOfRow(rowData, sectionId, rowId, highlightRow) {
+      return 72;
+   }
+
+   _renderRow(rowData, sectionId, rowId, highlightRow) {
+      var heightOfRow = this._heightOfRow(rowData, sectionId, rowId, highlightRow);
+      var margin = 12;
+      var width = heightOfRow - margin * 2;
+      var height = width;
       return (
-         <View style={{ height: 72, backgroundColor: '#080', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', }}>
-            <Image style={{ width: 48, height: 48, margin: 12, backgroundColor: '#CCC', }}
-               source={{ uri: rowData["icon"] }}
+         <View
+            style={{
+               height: heightOfRow,
+               backgroundColor: '#080',
+               flexDirection: 'row',
+               justifyContent: 'flex-start',
+               alignItems: 'center',
+            }}>
+            <Image
+               style={{
+                  width: width,
+                  height: height,
+                  margin: margin,
+                  backgroundColor: '#CCC',
+               }}
+               source={{ uri: (rowData["icon"].length > 0 ? rowData["icon"] : this.state.imageDefault) }}
             />
             <Text>{rowData["name"]}</Text>
          </View>
