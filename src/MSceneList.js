@@ -227,7 +227,7 @@ export default class MSceneList extends Component {
          var paddingVertical = 3;
          var heightOne = this.state.heightOne;
          var heightAll = heightOne * sectionIds.length + paddingVertical * 2;
-         var heightLimit = this.state.frameOfListView.height;
+         var frame = this.state.frameOfListView;
 
          var innerHTML = sectionIds.map((val, index) => {
             return (
@@ -242,7 +242,7 @@ export default class MSceneList extends Component {
          return (
             <View
                style={{
-                  top: (heightLimit - heightAll) * 0.5,
+                  top: frame.py + (frame.height - heightAll) * 0.5,
                   right: 12,
                   width: 15,
                   height: heightAll,
