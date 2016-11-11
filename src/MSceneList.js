@@ -60,8 +60,6 @@ export default class MSceneList extends Component {
                   var regex = /[A-Za-z]/;
                   if (regex.test(initial) === false) return;
 
-                  //name = name.toString().substr(0, 2); //get "奥迪" from "A 奥迪"
-
                   var brand = { //单个品牌
                      id: id,
                      name: name,
@@ -84,11 +82,15 @@ export default class MSceneList extends Component {
                if (this.state.sectionHeaderYs === undefined || this.state.sectionHeaderYs === null)
                   this.state.sectionHeaderYs = {};
                var sectionHeaderY = 0;
-               sectionIds.forEach((sectionId, sectionIndex) => { // here
+               sectionIds.forEach((sectionId, sectionIndex) => {
                   this.state.sectionHeaderYs[sectionId] = sectionHeaderY;
                   brands[sectionId].forEach((brand, brandIndex) => {
+                     //section header高度
                      sectionHeaderY += (brandIndex == 0 ? this._heightOfSectionHeader(brand, sectionId) : 0);
+                     //row高度
                      sectionHeaderY += this._heightOfRow(brand, sectionId, brandIndex);
+                     //separator高度
+                     sectionHeaderY += (brandIndex < brands[sectionId].length - 1 ? 1 : 0);
                   });
                });
             });
@@ -102,40 +104,62 @@ export default class MSceneList extends Component {
 
       this._panResponder = PanResponder.create({
          // Ask to be the responder:
-         //onStartShouldSetPanResponder:(event, gestureState) => true,
+         onStartShouldSetPanResponder:(event, gestureState) => true,
          //onStartShouldSetPanResponderCapture:(event, gestureState) => true,
          onMoveShouldSetPanResponder:(event, gestureState) => true,
          //onMoveShouldSetPanResponderCapture:(event, gestureState) => true,
 
+         onPanResponderStart:(event, gestureState) => {
+            this._scrollsToSection(this._sectionIdBeingIndex(event, gestureState));
+         },
+
          onPanResponderMove:(event, gestureState) => {
-            //estureState = stateID,moveX,moveY,x0,y0,dx,dy,vx,vy,numberActiveTouches,_accountsForMovesUpTo // testing
-            if (this.state.frameOfSectionNavigator === undefined) {
-               this._measureElement(this.refs.sectionIndex);
-               return;
-            }
-            if (this.state.sectionIds === undefined) return;
-
-            this.state.sectionIds.forEach((val, index) => {
-               var startY = this.state.frameOfSectionNavigator.py + this.state.heightOne * index;
-               var endY = this.state.frameOfSectionNavigator.py + this.state.heightOne * (index + 1);
-               if ((gestureState.moveY < startY || gestureState.moveY >= endY)
-                  && (index != 0 && index != this.state.sectionIds.length - 1)) return;
-               if (index == 0 && gestureState.moveY > endY) return;
-               if (index == this.state.sectionIds.length - 1 && gestureState.moveY < startY) return;
-
-               var y = this.state.sectionHeaderYs[val];
-               if (y === undefined) return;
-
-               this.refs.listView.scrollTo({ x: 0, y: y, animated: false, });
-            });
+            this._scrollsToSection(this._sectionIdBeingIndex(event, gestureState));
          },
          //onPanResponderTerminationRequest:(event, gestureState) => true,
          onShouldBlockNativeResponder:(event, gestureState) => true,
       });
    }
 
-   _measureElement(element, tag) {
+   _sectionIdBeingIndex(event, gestureState) {
+      var result = null;
+      if (this.state.frameOfSectionIndex === undefined) {
+         this._measureElement(this.refs.sectionIndex);
+         return result;
+      }
+      if (this.state.sectionIds === undefined) return result;
 
+      /*
+       * Use Array#some because I can break this loop by return a true value;
+       */
+      this.state.sectionIds.some((sectionId, index) => {
+         var startY = this.state.frameOfSectionIndex.py + this.state.heightOne * index;
+         var endY = this.state.frameOfSectionIndex.py + this.state.heightOne * (index + 1);
+         var currentY = (gestureState.moveY <= 0 ? gestureState.y0 : gestureState.moveY);
+
+         if ((currentY < startY || currentY >= endY)
+            && (index != 0 && index != this.state.sectionIds.length - 1)) return false;
+         if (index == 0 && currentY > endY) return false;
+         if (index == this.state.sectionIds.length - 1 && currentY < startY) return false;
+
+         result = sectionId;
+         return (result !== null);
+      });
+
+      return result;
+   }
+
+   _scrollsToSection(sectionId) {
+      if (sectionId === null || sectionId === undefined) return;
+
+      var y = this.state.sectionHeaderYs[sectionId];
+      if (y === undefined) return;
+
+      this.refs.listView.scrollTo({ x: 0, y: y, animated: false, });
+   }
+
+   _measureElement(element, tag) {
+      //获取listView的frame，触发sectionIndex的更新
       if ((tag === 'listView') && element.measure != undefined) {
          element.measure((ox, oy, width, height, px, py) => {
             var frame = {
@@ -155,9 +179,10 @@ export default class MSceneList extends Component {
          return;
       }
 
+      //记录sectionIndex的frame，用于section索引时的计算
       if (element === this.refs.sectionIndex && element.measure != undefined) {
          element.measure((ox, oy, width, height, px, py) => {
-            this.state.frameOfSectionNavigator = {
+            this.state.frameOfSectionIndex = {
                ox: ox,
                oy: oy,
                width: width,
@@ -189,12 +214,12 @@ export default class MSceneList extends Component {
                   this._measureElement(instance, instance._currentElement.props.tag);
                }}
             />
-            {this._renderSectionNavigator(this.refs["listView"])}
+            {this._renderSectionIndex(this.refs["listView"])}
          </View>
       );
    }
 
-   _renderSectionNavigator(listView) {
+   _renderSectionIndex(listView) {
       var sectionIds = this.state.sectionIds;
       if (this.state.frameOfListView === undefined || sectionIds === undefined) {
          return <View />
@@ -229,14 +254,6 @@ export default class MSceneList extends Component {
                }}
                ref="sectionIndex"
                {...this._panResponder.panHandlers}
-               //onLayout=((event) => {
-               //   this.setState.frameOfSectionNavigator = {
-               //      ox: event.nativeEvent.layout.x,
-               //      oy: event.nativeEvent.layout.y,
-               //      width: event.nativeEvent.layout.width,
-               //      height: event.nativeEvent.layout.height,
-               //   };
-               //});
             >
                {innerHTML}
             </View>
@@ -249,7 +266,7 @@ export default class MSceneList extends Component {
    }
 
    _renderSectionHeader(rowDatas, sectionId) {
-      var ref = `sectionId.${sectionId}`;
+      var tag = `sectionId.${sectionId}`;
       return (
          <View
             style={{
@@ -260,7 +277,7 @@ export default class MSceneList extends Component {
                alignItems: 'center',
                paddingLeft: 12,
             }}
-            tag={ref}
+            tag={tag}
          >
             <Text style={{ fontWeight: 'bold', }}>{sectionId}</Text>
          </View>
