@@ -9,6 +9,8 @@ import {
    View,
 } from 'react-native';
 
+import MModuleTabbar from './MModuleTabbar';
+
 export default class MSceneList extends Component {
    constructor(props) {
       super(props);
@@ -121,6 +123,15 @@ export default class MSceneList extends Component {
       });
    }
 
+   componentDidMount() {
+      let foo = 'outer';
+      function bar(func = x => foo) {
+         let foo = 'inner';
+         console.log(func()); // outer // testing
+      }
+      bar();
+   }
+
    _sectionIdBeingIndex(event, gestureState) {
       var result = null;
       if (this.state.frameOfSectionIndex === undefined) {
@@ -196,6 +207,25 @@ export default class MSceneList extends Component {
    }
 
    render() {
+      /*
+       * 突然喷水.jpg
+       * 突然嚣张.jpg
+       * 突然害羞.jpg
+       * 突然抽筋.jpg
+       * 突然绝望.jpg
+       */
+      const tabItems = [
+         //{ icon: './imgs/penshui.png', text: '喷水', },
+         //{ icon: './imgs/penshui.png', text: '嚣张', },
+         //{ icon: './imgs/penshui.png', text: '害羞', },
+         //{ icon: './imgs/penshui.png', text: '抽筋', },
+         { icon: 'http://kepkezelo.com/images/59fqze7llmos6freeupr.png', text: '滑稽', },
+         { icon: 'http://kepkezelo.com/images/59fqze7llmos6freeupr.png', text: '喷水', },
+         { icon: 'http://kepkezelo.com/images/59fqze7llmos6freeupr.png', text: '嚣张', },
+         { icon: 'http://kepkezelo.com/images/59fqze7llmos6freeupr.png', text: '害羞', },
+         { icon: 'http://kepkezelo.com/images/59fqze7llmos6freeupr.png', text: '抽筋', },
+      ];
+
       return (
          <View style={styles.container} ref="container">
             <ListView style={styles.listView}
@@ -215,6 +245,16 @@ export default class MSceneList extends Component {
                }}
             />
             {this._renderSectionIndex(this.refs["listView"])}
+            <MModuleTabbar style={styles.tabbar}
+               tabItems={tabItems}
+               //initialIndex={0}
+               //highlightOnClick={true} // todo
+               //highlightCurrentTab={true} // todo
+               onPressTab={(index, tabItem) => {
+                  console.log(`index = ${index}`); // testing
+                  console.log(`tabItem.keys = ${Object.keys(tabItem)}`); // testing
+               }}
+            />
          </View>
       );
    }
@@ -231,7 +271,7 @@ export default class MSceneList extends Component {
 
          var innerHTML = sectionIds.map((val, index) => {
             return (
-               <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#9FF', }}
+               <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(240,240,240,0.7)', }}
                   key={val}
                >
                   <Text style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', textAlign: 'center', textAlignVertical: 'center', fontSize: 10, }}>{val}</Text>
@@ -250,7 +290,6 @@ export default class MSceneList extends Component {
                   flexDirection: 'column',
                   justifyContent: 'flex-start',
                   alignItems: 'center',
-                  backgroundColor: 'whitesmoke', // testing
                   position: 'absolute',
                }}
                ref="sectionIndex"
@@ -272,7 +311,7 @@ export default class MSceneList extends Component {
          <View
             style={{
                height: this._heightOfSectionHeader(rowDatas, sectionId),
-               backgroundColor: '#AA3',
+               backgroundColor: '[rgba(230,230,230,0.8), rgba(255,255,255,0), ]',
                flexDirection: 'row',
                justifyContent: 'flex-start',
                alignItems: 'center',
@@ -298,10 +337,10 @@ export default class MSceneList extends Component {
          <View
             style={{
                height: heightOfRow,
-               backgroundColor: '#080',
                flexDirection: 'row',
                justifyContent: 'flex-start',
                alignItems: 'center',
+               backgroundColor: '#f0f8ff',
             }}>
             <Image
                style={{
@@ -318,13 +357,16 @@ export default class MSceneList extends Component {
    }
 
    _renderSeparator(sectionID, rowID, adjacentRowHighlighted) {
-      return <View key={`${sectionID}.${rowID}`} style={{ height: 0.5, backgroundColor: '#000', }} />
+      return <View key={`${sectionID}.${rowID}`} style={{ height: 0.5, backgroundColor: '#AAA', }} />
    }
 }
 
 var styles = StyleSheet.create({
    container: {
       flex: 1,
+      flexDirection: 'column',
+      justifyContent: 'flex-end',
+      alignItems: 'stretch',
    },
    listView: {
       flex: 1,
